@@ -6,7 +6,8 @@ const logger = require("morgan");
 const path = require("path");
 const { createServer } = require("http");
 //require the auth middleware from the  express-openid-connect node module. 
-const { auth } = require("express-openid-connect");
+// only require Auth for specific dirs using requiresAuth
+const { auth, requiresAuth } = require("express-openid-connect");
 
 const {
   checkUrl,
@@ -42,6 +43,7 @@ app.use(
 app.use(
  auth({
    secret: SESSION_SECRET,
+   authRequired: false, //make authentication global
    auth0Logout: true,
    baseURL: APP_URL,
  })
@@ -71,7 +73,8 @@ app.get("/", async (req, res) => {
 
 // 👇 add requiresAuth middlware to these private routes  👇
 
-app.get("/user", async (req, res) => {
+//add auth to user requiresAuth(),
+app.get("/user", requiresAuth(), async (req, res) => {
   res.render("user", {
     user: req.oidc && req.oidc.user,
     id_token: req.oidc && req.oidc.idToken,
@@ -80,7 +83,8 @@ app.get("/user", async (req, res) => {
   });
 });
 
-app.get("/expenses", async (req, res, next) => {
+// add auth to expenses requiresAuth(),
+app.get("/expenses", requiresAuth(), async (req, res, next) => {
   res.render("expenses", {
     user: req.oidc && req.oidc.user,
     expenses,

@@ -1,3 +1,4 @@
+const axios = require("axios").default;
 const express = require("express");
 const session = require("express-session");
 const createError = require("http-errors");
@@ -49,8 +50,8 @@ app.use(
  })
 );
 
-
-const expenses = [
+//using API, don't need this var
+/*const expenses = [
   {
     date: new Date(),
     description: "Pizza for a Coding Dojo session.",
@@ -62,17 +63,33 @@ const expenses = [
     value: 42,
   },
 ];
+*/
 
-app.get("/", async (req, res) => {
+/* app.get("/", async (req, res) => {
   res.render("home", {
     user: req.oidc && req.oidc.user,
     total: expenses.reduce((accum, expense) => accum + expense.value, 0),
     count: expenses.length,
   });
 });
+*/
+
+//update code to use Axios library to call the API
+app.get("/", async (req, res, next) => {
+ try {
+   const summary = await axios.get(`${API_URL}/total`);
+   res.render("home", {
+     user: req.oidc && req.oidc.user,
+     total: summary.data.total,
+     count: summary.data.count,
+   });
+ } catch (err) {
+   next(err);
+ }
+});
+
 
 // 👇 add requiresAuth middlware to these private routes  👇
-
 //add auth to user requiresAuth(),
 app.get("/user", requiresAuth(), async (req, res) => {
   res.render("user", {
@@ -84,12 +101,27 @@ app.get("/user", requiresAuth(), async (req, res) => {
 });
 
 // add auth to expenses requiresAuth(),
+/*
 app.get("/expenses", requiresAuth(), async (req, res, next) => {
   res.render("expenses", {
     user: req.oidc && req.oidc.user,
     expenses,
   });
 });
+*/
+// add call to API to fetch the list of expenses and handle any errors.
+app.get("/expenses", requiresAuth(), async (req, res, next) => {
+   try {
+     const expenses = await axios.get(`${API_URL}/reports`);
+     res.render("expenses", {
+       user: req.oidc && req.oidc.user,
+       expenses: expenses.data,
+     });
+   } catch (err) {
+     next(err);
+   }
+});
+
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
